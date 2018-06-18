@@ -5,7 +5,7 @@ from os.path import isfile, join
 
 class SqliteDb(object):
 
-    DB_FILE = 'db/wikidata_bot_requests_for_permissions.db'
+    DB_FILE = '../db/wikidata_bot_requests_for_permissions.db'
     DB_SCHEMA_FILE = 'db/schema.ddl'
     DB_MIGRATIONS_DIR = 'db/migrations/'
 
@@ -25,6 +25,13 @@ class SqliteDb(object):
 
         conn.commit()
         conn.close()
+
+    @classmethod
+    def execute(cls, sql):
+        conn = cls.connect()
+        cursor = conn.cursor()
+
+        return cursor.execute(sql)
 
     @classmethod
     def reset(cls):
