@@ -1,15 +1,26 @@
 import scrapy
 import os
 import csv
+import yaml
 
 from parser import BotStriper as bs
 
+with open('config.yaml', 'r', encoding='utf-8') as config_file:
+    config = yaml.load(config_file)
 
-class WikidataBotsWithoutBotflagSpider(scrapy.Spider):
 
-    name = 'wikidata_bots_without_botflag_spider'
+class BotsWithoutBotflagSpider(scrapy.Spider):
 
-    start_urls = ['https://www.wikidata.org/wiki/Category:Bots_without_botflag']
+    name = 'bots_without_botflag_spider'
+
+    start_urls = [
+        'https://www.wikidata.org/wiki/Category:Bots_without_botflag'
+    ]
+
+    custom_settings = {
+        'LOG_FILE': config['log'],
+        'LOG_LEVEL': config['log_level'],
+    }
 
     def __init__(self, save_path='data/spiders/bots_without_botflag.csv', **kwargs):
         super().__init__(**kwargs)
@@ -23,7 +34,7 @@ class WikidataBotsWithoutBotflagSpider(scrapy.Spider):
         bots = response.css('.mw-category > .mw-category-group > ul > li > a::text').extract()
 
         # strip bots name
-        bots = bs.strip(bots)
+        bots = bs.bulk_strip(bots)
 
         # loading already parsed bots
         if os.path.isfile(self.save_path):

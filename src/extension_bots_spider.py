@@ -1,16 +1,26 @@
 import scrapy
 import os
 import csv
+import yaml
 
 from parser import BotStriper as bs
 
-class WikidataExtensionBotsSpider(scrapy.Spider):
+with open('config.yaml', 'r', encoding='utf-8') as config_file:
+    config = yaml.load(config_file)
 
-    name = 'wikidata_extension_bots_spider'
+
+class ExtensionBotsSpider(scrapy.Spider):
+
+    name = 'extension_bots_spider'
 
     start_urls = [
         'https://www.wikidata.org/wiki/Category:Extension_bots'
     ]
+
+    custom_settings = {
+        'LOG_FILE': config['log'],
+        'LOG_LEVEL': config['log_level'],
+    }
 
     def __init__(self, save_path='data/spiders/extension_bots.csv', **kwargs):
         super().__init__(**kwargs)
@@ -24,7 +34,7 @@ class WikidataExtensionBotsSpider(scrapy.Spider):
         bots = response.css('.mw-category > .mw-category-group > ul > li > a::text').extract()
 
         # strip bots name
-        bots = bs.strip(bots)
+        bots = bs.bulk_strip(bots)
 
         # loading already parsed bots
         if os.path.isfile(self.save_path):

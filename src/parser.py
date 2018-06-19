@@ -12,14 +12,31 @@ class BotStriper(object):
     # pattern to replace the request number
     REQUEST_NUMBER_RE = re.compile('\s[0-9]+$')
 
+    # pattern to identify a red link
+    RED_LINK_RE = re.compile('.*redlink=1$')
+
     @classmethod
-    def strip(cls, bots, replace_request_number=False):
-        bots = [bot.replace('/wiki/', '') for bot in bots]
-        bots = [bot.replace('User:', '') for bot in bots]
-        bots = [bot.replace('_', ' ') for bot in bots]
+    def bulk_strip(cls, bots, replace_request_number=False):
+        return [cls.strip(bot, replace_request_number) for bot in bots]
+
+    @classmethod
+    def strip(cls, bot, replace_request_number=False):
+
+        if bot is None:
+            return None
+
+        if cls.RED_LINK_RE.match(bot):
+            bot = bot.replace('/w/index.php?title=User:', '')
+            bot = bot.replace('&action=edit&redlink=1', '')
+
+        bot = bot.replace('/wiki/', '')
+        bot = bot.replace('User:', '')
+        bot = bot.replace('_', ' ')
+
         if replace_request_number:
-            bots = [re.sub(cls.REQUEST_NUMBER_RE, '', bot) for bot in bots]
-        return bots
+            bot = re.sub(cls.REQUEST_NUMBER_RE, '', bot)
+
+        return bot
 
 
 class BotsGroupParser(object):
@@ -29,7 +46,7 @@ class BotsGroupParser(object):
     @classmethod
     def parse(cls):
 
-        response = MediaWikiAPI.allusers(augroup='bot')
+        response = MediaWikiAPI.allusers()
 
         while len(response['query']['allusers']) > 0:
 
@@ -38,7 +55,7 @@ class BotsGroupParser(object):
             for bot in response['query']['allusers']:
                 bots.append(bot['name'])
 
-            bots = BotStriper.strip(bots)
+            bots = BotStriper.bulk_strip(bots)
 
             if os.path.isfile(cls.SAVE_PATH):
                 with open(cls.SAVE_PATH) as f:
@@ -77,19 +94,19 @@ class BotsTableCreator(object):
         for file in cls.FILES:
             with open(file) as f:
                 reader = csv.reader(f)
-                bots += [row for row in reader]
+                bots += [row for row in reader][0]
 
         with open('data/spiders/bots_with_botflag.csv') as f:
             reader = csv.reader(f)
-            bots_with_botflag += [row for row in reader]
+            bots_with_botflag += [row for row in reader][0]
 
         with open('data/spiders/bots_without_botflag.csv') as f:
             reader = csv.reader(f)
-            bots_without_botflag += [row for row in reader]
+            bots_without_botflag += [row for row in reader][0]
 
         with open('data/spiders/extension_bots.csv') as f:
             reader = csv.reader(f)
-            extension_bots += [row for row in reader]
+            extension_bots += [row for row in reader][0]
 
         bots = set(bots)
 
@@ -97,9 +114,10 @@ class BotsTableCreator(object):
 
         for batch in batches:
 
-            bulk = []
+            for bot in MediaWikiAPI.users(batch)['query']['users']:
 
-            for bot in MediaWikiAPI.users(users=batch)['query']['users']:
+                if db.exists('bots', 'name', bot['name']):
+                    continue
 
                 bot['retrieved_at'] = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
                 bot['has_botflag'] = 1 if bot['name'] in bots_with_botflag else 0 if bot['name'] in bots_without_botflag else None
@@ -127,7 +145,6 @@ class BotsTableCreator(object):
                 bot['blockreason'] = bot['blockreason'] if 'blockreason' in bot else None
                 bot['blockexpiry'] = bot['blockexpiry'] if 'blockexpiry' in bot else None
 
-                bulk.append(bot)
                 db.insert('bots', bot)
 
-            #db.bulk_insert('bots', bulk)
+# BotsTableCreator.create()

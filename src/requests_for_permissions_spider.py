@@ -2,15 +2,26 @@ import scrapy
 import os
 import json
 import re
+import yaml
+
+with open('config.yaml', 'r', encoding='utf-8') as config_file:
+    config = yaml.load(config_file)
 
 
-class WikidataRequestsForPermissionsSpider(scrapy.Spider):
+class RequestsForPermissionsSpider(scrapy.Spider):
 
-    name = 'wikidata_requests_for_permissions_spider'
+    name = 'requests_for_permissions_spider'
+
     base_url = 'https://www.wikidata.org'
+
     start_urls = json.load(open('data/spiders/archives.json'))['urls']
 
-    red_link = re.compile('.*redlink=1$')
+    custom_settings = {
+        'LOG_FILE': config['log'],
+        'LOG_LEVEL': config['log_level'],
+    }
+
+    RED_LINK_RE = re.compile('.*redlink=1$')
 
     def __init__(self, save_path='data/spiders/requests_for_permissions.json', **kwargs):
         super().__init__(**kwargs)
@@ -34,14 +45,14 @@ class WikidataRequestsForPermissionsSpider(scrapy.Spider):
         if response.url == 'www.wikidata.org/wiki/Category:Archived_requests_for_permissions':
             return
 
-        if self.red_link.match(response.url) is not None:
+        if self.RED_LINK_RE.match(response.url) is not None:
             return
 
         for key in data.keys():
             for li in response.xpath("//h1/span[@id='%s']/../following::ul[1]/li" % key.capitalize()):
                 url = "%s%s" % (self.base_url, li.css('li > a::attr(href)').extract()[0])
 
-                if 'wiki/Category:Archived_requests_for_permissions' in url or self.red_link.match(url) is not None:
+                if 'wiki/Category:Archived_requests_for_permissions' in url or self.RED_LINK_RE.match(url) is not None:
                     continue
 
                 if url not in data['urls']:

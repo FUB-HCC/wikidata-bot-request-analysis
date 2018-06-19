@@ -2,7 +2,7 @@ import csv
 import re
 import pandas as pd
 
-from db import SqliteDb
+from db import SqliteDb as db
 
 
 class Analyser(object):
@@ -67,20 +67,20 @@ class Analyser(object):
     def plot_distribution_over_time(cls, sql):
 
         earliest_time = None
-        result = SqliteDb.execute(sql + cls.SQL_MIN)
+        result = db.execute(sql + cls.SQL_MIN)
 
         for item in result:
             earliest_time = re.sub(cls.TIME_RE, '', item[0])
 
         latest_time = None
-        result = SqliteDb.execute(sql + cls.SQL_MAX)
+        result = db.execute(sql + cls.SQL_MAX)
 
         for item in result:
             latest_time = re.sub(cls.TIME_RE, '', item[0])
 
         time_series = cls.init_time_series(earliest_time, latest_time)
 
-        result = SqliteDb.execute(sql)
+        result = db.execute(sql)
 
         for item in result:
             time = re.sub(cls.TIME_RE, '', item[0])
@@ -98,7 +98,7 @@ class Analyser(object):
         for i in range(min_value, max_value + 1):
             distribution[i] = 0
 
-        result = SqliteDb.execute(sql)
+        result = db.execute(sql)
 
         for item in result:
             distribution[item[0]] = item[1]
@@ -110,7 +110,7 @@ class Analyser(object):
 
         sql = sql.replace('GROUP', 'ORDER')
 
-        result = SqliteDb.execute(sql + cls.SQL_MIN)
+        result = db.execute(sql + cls.SQL_MIN)
 
         for item in result:
             return item[0]
@@ -120,7 +120,7 @@ class Analyser(object):
 
         sql = sql.replace('GROUP', 'ORDER')
 
-        result = SqliteDb.execute(sql + cls.SQL_MAX)
+        result = db.execute(sql + cls.SQL_MAX)
 
         for item in result:
             return item[0]

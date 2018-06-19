@@ -24,7 +24,7 @@ class MediaWikiAPI(object):
     }
 
     DEFAULT_ALLUSERS_PARAMS = {
-        'augrooup': 'bot',
+        'augroup': 'bot',
     }
 
     @classmethod

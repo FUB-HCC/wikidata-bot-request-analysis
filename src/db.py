@@ -97,14 +97,18 @@ class SqliteDb(object):
         conn = cls.connect()
         cursor = conn.cursor()
 
-        sql = "SELECT %s FROM %s WHERE %s = '%s'" % (selector_column_name, from_table_name, where_column_name, str(where_value))
+        sql = "SELECT %s FROM %s WHERE %s = (?)" % (selector_column_name, from_table_name, where_column_name)
 
-        result = [row for row in cursor.execute(sql)]
+        result = [row for row in cursor.execute(sql, (str(where_value),))]
 
         conn.commit()
         conn.close()
 
         return result
+
+    @classmethod
+    def exists(cls, from_table_name, where_column_name, where_value):
+        return len(cls.find('*', from_table_name, where_column_name, where_value)) > 0
 
     @classmethod
     def drop(cls, table_name):
