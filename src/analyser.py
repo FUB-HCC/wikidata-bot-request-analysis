@@ -3,6 +3,8 @@ import re
 import pandas as pd
 
 from db import SqliteDb as db
+from plotly.offline import iplot
+from plotly.graph_objs import Bar
 
 
 class Analyser(object):
@@ -124,10 +126,23 @@ class Analyser(object):
     ]
 
     UNIQUE_BOTS_QUERY = "SELECT name AS bot FROM bots UNION SELECT bot_name AS bot FROM requests_for_permissions"
-    UNIQUE_BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT(bot_name) FROM requests_for_permissions"
-    UNIQUE_BOTS_WITHOUT_REQUEST_QUERY = "SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions"
+
+    BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT(bot_name) FROM requests_for_permissions"
+    BOTS_WITHOUT_REQUEST_QUERY = "SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions"
+    BOTS_WITH_BOT_FLAG_NOT_IN_BOT_GROUP = "SELECT name FROM bots WHERE has_botflag = 1 AND groups NOT LIKE '%bot%'"
+    BOTS_WITHOUT_BOT_FLAG_IN_BOT_GROUP = "SELECT name FROM bots WHERE has_botflag = 0 AND groups LIKE '%bot%'"
+    BOTS_WITH_BOT_FLAG_AND_IN_BOT_GROUP = "SELECT name FROM bots WHERE has_botflag = 1 AND groups LIKE '%bot%'"
+
     RIGHTS_OF_BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT(bot_name), rights, bot_has_red_link FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name"
-    RIGHTS_OF_BOTS_WITHOUT_REQUEST_QUERY = "SELECT DISTINCT(name), rights FROM bots WHERE name IN (SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions)"
+    RIGHTS_OF_BOTS_WITHOUT_REQUEST_QUERY = "SELECT name, rights FROM bots WHERE name IN (SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions)"
+    RIGHTS_OF_BOTS_WITH_BOT_FLAG_QUERY = "SELECT name, rights FROM bots WHERE has_botflag = 1 AND groups NOT LIKE '%bot%'"
+    RIGHTS_OF_BOTS_IN_GROUP_BOT = "SELECT name, rights FROM bots WHERE has_botflag = 0 AND groups LIKE '%bot%'"
+
+    GROUPS_OF_BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT(bot_name), groups, bot_has_red_link FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name"
+    GROUPS_OF_BOTS_WITHOUT_REQUEST_QUERY = "SELECT name, groups FROM bots WHERE name IN (SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions)"
+
+    REQUEST_WITHOUT_CLOSED_AT = "SELECT url FROM requests_for_permissions WHERE closed_at = '' OR closed_at IS NULL"
+    REQUEST_WITHOUT_EDITOR_COUNT = "SELECT url FROM requests_for_permissions WHERE editor_count IS NULL"
 
     @classmethod
     def count_bots_in_files(cls):
@@ -195,13 +210,13 @@ class Analyser(object):
             time = re.sub(cls.TIME_RE, '', item[0])
             time_series[time] += 1
 
-        cls.plot(time_series, 'Date')
+        cls.plot(time_series, ['date', 'count'])
 
     @classmethod
     def plot_distribution(cls, sql):
 
-        min_value = cls.get_min_value(sql)
-        max_value = cls.get_max_value(sql)
+        min_value = cls.get_min_value(sql + ''' ORDER BY editor_count''')
+        max_value = cls.get_max_value(sql + ''' ORDER BY editor_count''')
 
         distribution = {}
         for i in range(min_value, max_value + 1):
@@ -212,13 +227,10 @@ class Analyser(object):
         for item in result:
             distribution[item[0]] = item[1]
 
-        cls.plot(distribution, 'Editor count')
+        cls.plot(distribution, ['editor_count', 'count'])
 
     @classmethod
     def get_min_value(cls, sql):
-
-        sql = sql.replace('GROUP', 'ORDER')
-
         result = db.execute(sql + cls.SQL_MIN)
 
         for item in result:
@@ -227,19 +239,17 @@ class Analyser(object):
     @classmethod
     def get_max_value(cls, sql):
 
-        sql = sql.replace('GROUP', 'ORDER')
-
         result = db.execute(sql + cls.SQL_MAX)
 
         for item in result:
             return item[0]
 
     @staticmethod
-    def plot(distribution, x_label):
-        series = pd.Series(distribution, name='DateValue')
-        series.index.name = x_label
-        series.reset_index()
-        series.plot(figsize=(15, 10), kind='bar')
+    def plot(distribution, columns):
+        df = pd.DataFrame(columns=columns)
+        df[columns[0]] = distribution.keys()
+        df[columns[1]] = distribution.values()
+        iplot([Bar(x=df[columns[0]], y=df[columns[1]])])
 
     @classmethod
     def generate_matrix(cls):
@@ -289,9 +299,9 @@ class Analyser(object):
         print("#################### Names of all unique bots: ####################\n", ', '.join(list(bots)), "\n")
 
     @classmethod
-    def print_unique_bots_with_request(cls):
+    def print_bots_with_request(cls):
 
-        result = db.execute(cls.UNIQUE_BOTS_WITH_REQUEST_QUERY)
+        result = db.execute(cls.BOTS_WITH_REQUEST_QUERY)
 
         bots = []
         for item in result:
@@ -302,9 +312,9 @@ class Analyser(object):
         print("#################### Names of all unique bots with a request for permission: ####################\n", ', '.join(list(bots)), "\n")
 
     @classmethod
-    def print_unique_bots_without_request(cls):
+    def print_bots_without_request(cls):
 
-        result = db.execute(cls.UNIQUE_BOTS_WITHOUT_REQUEST_QUERY)
+        result = db.execute(cls.BOTS_WITHOUT_REQUEST_QUERY)
 
         bots = []
         for item in result:
@@ -387,3 +397,281 @@ class Analyser(object):
         print(
             "#################### Names of all bots without a request and without rights: ####################\n",
             ', '.join(bots), "\n")
+
+    @classmethod
+    def print_right_differences_for_request(cls):
+        result = db.execute(cls.RIGHTS_OF_BOTS_WITH_REQUEST_QUERY)
+
+        with_request_rights = []
+
+        for item in result:
+            if item[1] is not None:
+                with_request_rights += item[1].split(',')
+
+        with_request_rights = set(with_request_rights)
+
+        result = db.execute(cls.RIGHTS_OF_BOTS_WITHOUT_REQUEST_QUERY)
+
+        without_request_rights = []
+
+        for item in result:
+            if item[1] is not None:
+                without_request_rights += item[1].split(',')
+
+        without_request_rights = set(without_request_rights)
+
+        print(
+            "#################### All rights that bots with a request for permission have but all other bots do not have: ####################\n",
+            ', '.join(with_request_rights.difference(without_request_rights)), "\n")
+        print(
+            "#################### All rights that bots without a request for permission have but all other bots do not have: ####################\n",
+            ', '.join(without_request_rights.difference(with_request_rights)), "\n")
+
+    @classmethod
+    def print_groups_of_bots_with_request(cls):
+        result = db.execute(cls.GROUPS_OF_BOTS_WITH_REQUEST_QUERY)
+
+        groups_dict = {'groups': []}
+        for item in result:
+            if item[1] is not None:
+                groups_dict['groups'] += item[1].split(',')
+
+        df = pd.DataFrame(groups_dict)
+        df = df.groupby(['groups']).size().reset_index(name='counts')
+        df = df.sort_values(by=['counts', 'groups'], ascending=[False, True])
+
+        print('|{:^30}|{:^30}|'.format('groups', 'counts'))
+        print('|{:_^30}|{:_^30}|'.format('', ''))
+        for index, row in df.iterrows():
+            print('|{:^30}|{:^30}|'.format(row['groups'], row['counts']))
+
+    @classmethod
+    def print_bots_with_request_without_groups(cls):
+        result = db.execute(cls.GROUPS_OF_BOTS_WITH_REQUEST_QUERY)
+
+        bots_with_red_link = []
+        bots_without_red_link = []
+        for item in result:
+            if item[1] is None:
+                if item[2] == 1:
+                    bots_with_red_link.append(item[0])
+                else:
+                    bots_without_red_link.append(item[0])
+
+        print(
+            "#################### Number of all bots with a request, without groups and a red link: ####################\n",
+            len(bots_with_red_link), "\n")
+        print(
+            "#################### Names of all bots with a request, without groups and a red link: ####################\n",
+            ', '.join(bots_with_red_link), "\n")
+        print(
+            "#################### Number of all bots with a request, without groups and without a red link: ####################\n",
+            len(bots_without_red_link), "\n")
+        print(
+            "#################### Names of all bots with a request, without groups and without a red link: ####################\n",
+            ', '.join(bots_without_red_link), "\n")
+
+    @classmethod
+    def print_groups_of_bots_without_request(cls):
+        result = db.execute(cls.GROUPS_OF_BOTS_WITHOUT_REQUEST_QUERY)
+
+        groups_dict = {'groups': []}
+        for item in result:
+            if item[1] is not None:
+                groups_dict['groups'] += item[1].split(',')
+
+        df = pd.DataFrame(groups_dict)
+        df = df.groupby(['groups']).size().reset_index(name='counts')
+        df = df.sort_values(by=['counts', 'groups'], ascending=[False, True])
+
+        print('|{:^30}|{:^30}|'.format('groups', 'counts'))
+        print('|{:_^30}|{:_^30}|'.format('', ''))
+        for index, row in df.iterrows():
+            print('|{:^30}|{:^30}|'.format(row['groups'], row['counts']))
+
+    @classmethod
+    def print_bots_without_request_without_groups(cls):
+        result = db.execute(cls.GROUPS_OF_BOTS_WITHOUT_REQUEST_QUERY)
+
+        bots = []
+        for item in result:
+            if item[1] is None:
+                bots.append(item[0])
+
+        print(
+            "#################### Number of all bots without a request and without groups: ####################\n",
+            len(bots), "\n")
+        print(
+            "#################### Names of all bots without a request and without groups: ####################\n",
+            ', '.join(bots), "\n")
+
+    @classmethod
+    def print_groups_differences(cls):
+        result = db.execute(cls.GROUPS_OF_BOTS_WITH_REQUEST_QUERY)
+
+        with_request_groups = []
+
+        for item in result:
+            if item[1] is not None:
+                with_request_groups += item[1].split(',')
+
+        with_request_groups = set(with_request_groups)
+
+        result = db.execute(cls.GROUPS_OF_BOTS_WITHOUT_REQUEST_QUERY)
+
+        without_request_groups = []
+
+        for item in result:
+            if item[0] is not None:
+                without_request_groups += item[0].split(',')
+
+        without_request_groups = set(without_request_groups)
+        print(
+            "#################### All groups that bots with a request for permission belong to but all other bots do not: ####################\n",
+            ', '.join(with_request_groups.difference(without_request_groups)), "\n")
+        print(
+            "#################### All groups that bots without a request for permission belong to but all other bots do not: ####################\n",
+            ', '.join(without_request_groups.difference(with_request_groups)), "\n")
+
+    @classmethod
+    def print_bots_with_bot_flag(cls):
+
+        result = db.execute(cls.BOTS_WITH_BOT_FLAG_NOT_IN_BOT_GROUP)
+
+        bots = []
+        for item in result:
+            bots.append(item[0])
+        bots = set(bots)
+
+        print("#################### Number of all unique bots with a bot flag: ####################\n",
+              len(bots), "\n")
+        print("#################### Names of all unique bots with a bot flag: ####################\n",
+              ', '.join(list(bots)), "\n")
+
+    @classmethod
+    def print_bots_in_bot_group(cls):
+
+        result = db.execute(cls.BOTS_WITHOUT_BOT_FLAG_IN_BOT_GROUP)
+
+        bots = []
+        for item in result:
+            bots.append(item[0])
+        bots = set(bots)
+
+        print("#################### Number of all unique bots which belong to the group bot: ####################\n",
+              len(bots), "\n")
+        print("#################### Names of all unique bots which belong to the group bot: ####################\n",
+              ', '.join(list(bots)), "\n")
+
+    @classmethod
+    def print_bots_with_bot_flag_and_in_bot_group(cls):
+
+        result = db.execute(cls.BOTS_WITH_BOT_FLAG_AND_IN_BOT_GROUP)
+
+        bots = []
+        for item in result:
+            bots.append(item[0])
+
+        bots = set(bots)
+
+        print("#################### Number of all unique bots with a bot flag and which belong to the group bot: ####################\n",
+              len(bots), "\n")
+        print("#################### Names of all unique bots with a bot flag and which belong to the group bot: ####################\n",
+              ', '.join(list(bots)), "\n")
+
+    @classmethod
+    def print_rights_of_bot_with_bot_flag(cls):
+        result = db.execute(cls.RIGHTS_OF_BOTS_WITH_BOT_FLAG_QUERY)
+
+        rights_dict = {'rights': []}
+        for item in result:
+            if item[1] is not None:
+                rights_dict['rights'] += item[1].split(',')
+
+        df = pd.DataFrame(rights_dict)
+        df = df.groupby(['rights']).size().reset_index(name='counts')
+        df = df.sort_values(by=['counts', 'rights'], ascending=[False, True])
+
+        print('|{:^30}|{:^30}|'.format('rights', 'counts'))
+        print('|{:_^30}|{:_^30}|'.format('', ''))
+        for index, row in df.iterrows():
+            print('|{:^30}|{:^30}|'.format(row['rights'], row['counts']))
+
+    @classmethod
+    def print_rights_of_bot_in_bot_group(cls):
+        result = db.execute(cls.RIGHTS_OF_BOTS_IN_GROUP_BOT)
+
+        rights_dict = {'rights': []}
+        for item in result:
+            if item[1] is not None:
+                rights_dict['rights'] += item[1].split(',')
+
+        df = pd.DataFrame(rights_dict)
+        df = df.groupby(['rights']).size().reset_index(name='counts')
+        df = df.sort_values(by=['counts', 'rights'], ascending=[False, True])
+
+        print('|{:^30}|{:^30}|'.format('rights', 'counts'))
+        print('|{:_^30}|{:_^30}|'.format('', ''))
+        for index, row in df.iterrows():
+            print('|{:^30}|{:^30}|'.format(row['rights'], row['counts']))
+
+    @classmethod
+    def print_right_differences_for_bot_flag_and_bot_group(cls):
+        result = db.execute(cls.RIGHTS_OF_BOTS_WITH_BOT_FLAG_QUERY)
+
+        with_bot_flag_rights = []
+
+        for item in result:
+            if item[1] is not None:
+                with_bot_flag_rights += item[1].split(',')
+
+        with_bot_flag_rights = set(with_bot_flag_rights)
+
+        result = db.execute(cls.RIGHTS_OF_BOTS_IN_GROUP_BOT)
+
+        in_bot_group_rights = []
+
+        for item in result:
+            if item[1] is not None:
+                in_bot_group_rights += item[1].split(',')
+
+        in_bot_group_rights = set(in_bot_group_rights)
+
+        print(
+            "#################### All rights that bots with a bot flag have but bots in bot group do not have: ####################\n",
+            ', '.join(with_bot_flag_rights.difference(in_bot_group_rights)), "\n")
+        print(
+            "#################### All rights that bots which belong to the bot group have but bots with a bot flag do not have: ####################\n",
+            ', '.join(in_bot_group_rights.difference(with_bot_flag_rights)), "\n")
+
+    @classmethod
+    def print_request_for_permission_without_closed_at(cls):
+
+        result = db.execute(cls.REQUEST_WITHOUT_CLOSED_AT)
+
+        requests = []
+        for item in result:
+            requests.append(item[0])
+
+        print(
+            "#################### Number of request for permission without closed_at: ####################\n",
+            len(requests), "\n")
+        print(
+            "#################### Request for permission without closed_at: ####################\n",
+            "\n".join(requests), "\n")
+
+    @classmethod
+    def print_request_for_permission_without_editor_count(cls):
+
+        result = db.execute(cls.REQUEST_WITHOUT_EDITOR_COUNT)
+
+        requests = []
+        for item in result:
+            requests.append(item[0])
+
+        print(
+            "#################### Number of request for permission without editor_count: ####################\n",
+            len(requests), "\n")
+        print(
+            "#################### Request for permission without editor_count: ####################\n",
+            "\n".join(requests), "\n")
