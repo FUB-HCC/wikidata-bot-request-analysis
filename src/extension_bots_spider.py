@@ -3,7 +3,7 @@ import os
 import csv
 import yaml
 
-from parser import BotStriper as bs
+from parser import Striper as striper
 
 with open('config.yaml', 'r', encoding='utf-8') as config_file:
     config = yaml.load(config_file)
@@ -34,7 +34,7 @@ class ExtensionBotsSpider(scrapy.Spider):
         bots = response.css('.mw-category > .mw-category-group > ul > li > a::text').extract()
 
         # strip bots name
-        bots = bs.bulk_strip(bots)
+        bots = striper.bulk_strip(bots)
 
         # loading already parsed bots
         if os.path.isfile(self.save_path):
@@ -42,6 +42,9 @@ class ExtensionBotsSpider(scrapy.Spider):
                 reader = csv.reader(f)
                 for row in reader:
                     bots += row
+
+        # make sure to have a unique set of bots
+        bots = list(set(bots))
 
         # storing all bots
         with open(self.save_path, 'w') as f:

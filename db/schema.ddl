@@ -1,10 +1,12 @@
 CREATE TABLE requests_for_permissions (
     id                    INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
     url                   TEXT UNIQUE,
-    bot                   TEXT,
+    bot_url               TEXT,
     bot_name              TEXT,
     bot_has_red_link      INTEGER,
-    operator              INTEGER,
+    operator_url          TEXT,
+    operator_name         TEXT,
+    operator_has_red_link TEXT,
     is_successful         INTEGER,
     first_edit            DATE,
     last_edit             DATE,
@@ -22,8 +24,7 @@ CREATE TABLE requests_for_permissions (
     function              TEXT,
     archive_comment       TEXT,
     summary               TEXT,
-    retrieved_at          DATE,
-    FOREIGN KEY(bot) REFERENCES bot(id)
+    retrieved_at          DATE
 );
 CREATE TABLE bots (
     id               INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
@@ -43,5 +44,6 @@ CREATE TABLE bots (
     rights           TEXT,
     editcount        INTEGER,
     registration     TEXT,
+    redirect_to      INTEGER,
     retrieved_at     DATE
 );

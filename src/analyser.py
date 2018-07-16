@@ -128,12 +128,13 @@ class Analyser(object):
     UNIQUE_BOTS_QUERY = "SELECT name AS bot FROM bots UNION SELECT bot_name AS bot FROM requests_for_permissions"
 
     BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT(bot_name) FROM requests_for_permissions"
-    BOTS_WITHOUT_REQUEST_QUERY = "SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions"
+    BOTS_WITHOUT_REQUEST_QUERY = "SELECT name, rights FROM bots WHERE name IN (SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions) AND redirect_of IS NULL"
     BOTS_WITH_BOT_FLAG_NOT_IN_BOT_GROUP = "SELECT name FROM bots WHERE has_botflag = 1 AND groups NOT LIKE '%bot%'"
     BOTS_WITHOUT_BOT_FLAG_IN_BOT_GROUP = "SELECT name FROM bots WHERE has_botflag = 0 AND groups LIKE '%bot%'"
     BOTS_WITH_BOT_FLAG_AND_IN_BOT_GROUP = "SELECT name FROM bots WHERE has_botflag = 1 AND groups LIKE '%bot%'"
 
-    RIGHTS_OF_BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT(bot_name), rights, bot_has_red_link FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name"
+    RIGHTS_OF_BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT(bot_name), rights, bot_has_red_link FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name WHERE redirect_of IS NULL UNION SELECT DISTINCT(name), rights, 0 FROM bots WHERE id IN (SELECT redirect_of FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE redirect_of IS NOT NULL);"
+
     RIGHTS_OF_BOTS_WITHOUT_REQUEST_QUERY = "SELECT name, rights FROM bots WHERE name IN (SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions)"
     RIGHTS_OF_BOTS_WITH_BOT_FLAG_QUERY = "SELECT name, rights FROM bots WHERE has_botflag = 1 AND groups NOT LIKE '%bot%'"
     RIGHTS_OF_BOTS_IN_GROUP_BOT = "SELECT name, rights FROM bots WHERE has_botflag = 0 AND groups LIKE '%bot%'"
@@ -347,6 +348,7 @@ class Analyser(object):
         result = db.execute(cls.RIGHTS_OF_BOTS_WITH_REQUEST_QUERY)
 
         bots_with_red_link = []
+        # bots_with_right_and_redlink = []
         bots_without_red_link = []
         for item in result:
             if item[1] is None:
@@ -354,6 +356,13 @@ class Analyser(object):
                     bots_with_red_link.append(item[0])
                 else:
                     bots_without_red_link.append(item[0])
+        #    else:
+        #        if item[2] == 1:
+        #            bots_with_right_and_redlink.append(item[0])
+
+        #print(
+        #    "#################### Names of all bots with a request, with rights and a red link: ####################\n",
+        #    ', '.join(bots_with_right_and_redlink), "\n")
 
         print("#################### Number of all bots with a request, without rights and a red link: ####################\n",
               len(bots_with_red_link), "\n")

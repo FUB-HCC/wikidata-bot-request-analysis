@@ -2,41 +2,55 @@ import datetime
 import os
 import csv
 import re
+from html import unescape
+from urllib.parse import unquote
 
-from api import MediaWikiAPI
+from api import MediaWikiAPI as api
 from db import SqliteDb as db
 
 
-class BotStriper(object):
-
-    # pattern to replace the request number
-    REQUEST_NUMBER_RE = re.compile('\s[0-9]+$')
+class Striper(object):
 
     # pattern to identify a red link
     RED_LINK_RE = re.compile('.*redlink=1$')
 
-    @classmethod
-    def bulk_strip(cls, bots, replace_request_number=False):
-        return [cls.strip(bot, replace_request_number) for bot in bots]
+    # pattern to replace the request number
+    REQUEST_NUMBER_RE = re.compile('\s[0-9]+$')
+
+    # pattern to identify if the link is a requests for permissions link
+    REQUESTS_FOR_PERMISSIONS_LINK_RE = re.compile('/wiki/Wikidata:Requests_for_permissions/')
 
     @classmethod
-    def strip(cls, bot, replace_request_number=False):
+    def bulk_strip(cls, users, replace_request_number=False):
+        return [cls.strip(user, replace_request_number) for user in users]
 
-        if bot is None:
+    @classmethod
+    def strip(cls, user, replace_request_number=False):
+
+        if user is None:
             return None
 
-        if cls.RED_LINK_RE.match(bot):
-            bot = bot.replace('/w/index.php?title=User:', '')
-            bot = bot.replace('&action=edit&redlink=1', '')
+        # decode all html escape characters
+        user = unescape(user)
 
-        bot = bot.replace('/wiki/', '')
-        bot = bot.replace('User:', '')
-        bot = bot.replace('_', ' ')
+        # decode all url escape characters
+        user = unquote(user)
+
+        if cls.RED_LINK_RE.match(user):
+            user = user.replace('/w/index.php?title=User:', '')
+            user = user.replace('&action=edit&redlink=1', '')
+            user = user.replace('/w/index.php?title=', '')
+
+        user = re.sub(cls.REQUESTS_FOR_PERMISSIONS_LINK_RE, '', user)
+        user = user.replace('_', ' ')
+        user = user.replace('/wiki/', '')
+        user = user.replace('User:', '')
+        user = user.replace('User talk:', '')
 
         if replace_request_number:
-            bot = re.sub(cls.REQUEST_NUMBER_RE, '', bot)
+            user = re.sub(cls.REQUEST_NUMBER_RE, '', user)
 
-        return bot
+        return user
 
 
 class BotsGroupParser(object):
@@ -46,7 +60,7 @@ class BotsGroupParser(object):
     @classmethod
     def parse(cls):
 
-        response = MediaWikiAPI.allusers()
+        response = api.allusers()
 
         while len(response['query']['allusers']) > 0:
 
@@ -55,13 +69,16 @@ class BotsGroupParser(object):
             for bot in response['query']['allusers']:
                 bots.append(bot['name'])
 
-            bots = BotStriper.bulk_strip(bots)
+            bots = Striper.bulk_strip(bots)
 
             if os.path.isfile(cls.SAVE_PATH):
                 with open(cls.SAVE_PATH) as f:
                     reader = csv.reader(f)
                     for row in reader:
                         bots += row
+
+            # make sure to have a unique set of bots
+            bots = list(set(bots))
 
             with open(cls.SAVE_PATH, 'w') as f:
                 writer = csv.writer(f)
@@ -70,7 +87,7 @@ class BotsGroupParser(object):
             if 'query-continue' not in response:
                 break
 
-            response = MediaWikiAPI.allusers(augroup='bot', aufrom=response['query-continue']['allusers']['aufrom'])
+            response = api.allusers(augroup='bot', aufrom=response['query-continue']['allusers']['aufrom'])
 
 
 class BotsTableCreator(object):
@@ -114,7 +131,7 @@ class BotsTableCreator(object):
 
         for batch in batches:
 
-            for bot in MediaWikiAPI.users(batch)['query']['users']:
+            for bot in api.users(batch)['query']['users']:
 
                 if db.exists('bots', 'name', bot['name']):
                     continue

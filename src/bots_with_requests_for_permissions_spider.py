@@ -4,7 +4,7 @@ import csv
 import os
 import yaml
 
-from parser import BotStriper as bs
+from parser import Striper as striper
 
 with open('config.yaml', 'r', encoding='utf-8') as config_file:
     config = yaml.load(config_file)
@@ -46,7 +46,7 @@ class BotsWithRequestsForPermissionsSpider(scrapy.Spider):
                 # extracting bots name or href
                 bot = matches[0].extract()
                 # strip bots name
-                bot = bs.strip(bot, replace_request_number=True)
+                bot = striper.strip(bot, replace_request_number=True)
                 bots.append(bot)
                 break
 
@@ -56,6 +56,9 @@ class BotsWithRequestsForPermissionsSpider(scrapy.Spider):
                 reader = csv.reader(f)
                 for row in reader:
                     bots += row
+
+        # make sure to have a unique set of bots
+        bots = list(set(bots))
 
         # storing all bots
         with open(self.save_path, 'w') as f:

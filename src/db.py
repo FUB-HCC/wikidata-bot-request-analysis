@@ -1,13 +1,13 @@
 import sqlite3
 import os
-from os.path import isfile, join
+from os.path import isfile, join, abspath, dirname
 
 
 class SqliteDb(object):
 
-    DB_FILE = '../db/wikidata_bot_requests_for_permissions.db'
-    DB_SCHEMA_FILE = 'db/schema.ddl'
-    DB_MIGRATIONS_DIR = 'db/migrations/'
+    DB_FILE = join(dirname(abspath(__file__)), '../db/wikidata_bot_requests_for_permissions.db')
+    DB_SCHEMA_FILE = join(dirname(abspath(__file__)), '../db/schema.ddl')
+    DB_MIGRATIONS_DIR = join(dirname(abspath(__file__)), '../db/migrations/')
 
     @classmethod
     def connect(cls):
@@ -20,8 +20,6 @@ class SqliteDb(object):
 
         with open(cls.DB_SCHEMA_FILE, 'r') as file:
             cursor.executescript(file.read())
-
-        cls.migrate()
 
         conn.commit()
         conn.close()

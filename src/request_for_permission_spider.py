@@ -3,10 +3,12 @@ import json
 import datetime
 import re
 import yaml
+from html import unescape
+from urllib.parse import unquote
 
 from db import SqliteDb as db
-from api import MediaWikiAPI
-from parser import BotStriper as bs
+from api import MediaWikiAPI as api
+from parser import Striper as striper
 
 with open('config.yaml', 'r', encoding='utf-8') as config_file:
     config = yaml.load(config_file)
@@ -45,12 +47,6 @@ class RequestForPermissionSpider(scrapy.Spider):
             '//h3/span[@class="mw-headline"]/a/text()',
             '//h2/span[@class="mw-headline"]/a/text()',
         ],
-        'bot_name': [
-            '//h3/span[@class="mw-headline"]/a/@href',
-            '//h3/span[@class="mw-headline"]/strike/a/@href',
-            '//h3/span[@class="mw-headline"]/a/text()',
-            '//h2/span[@class="mw-headline"]/a/text()',
-        ],
         'summary': [
             '//p/i[text()="The following discussion is closed. "]/../following::dl[1]/dd/dl/dd',
             '//i[text()="A summary of the conclusions reached follows."]/../following::dl[1]/dd',
@@ -77,25 +73,25 @@ class RequestForPermissionSpider(scrapy.Spider):
         ],
     }
 
-    # pattern to identify a red link
-    RED_LINK_RE = re.compile('.*redlink=1$')
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         db.reset()
 
     def parse(self, response):
 
-        api_response = MediaWikiAPI.revisions([response.url.replace('https://www.wikidata.org/wiki/', '')])
+        api_response = api.revisions([response.url.replace('https://www.wikidata.org/wiki/', '')])
 
-        bot = self.get_bot(response)
+        bot_url = self.get_bot_url(response)
+        operator_url = self.get_operator_url(response)
 
         data = {
-            'url': response.url.replace('https://', ''),
-            'bot': bot,
+            'url': unquote(unescape(response.url.replace('https://', ''))),
+            'bot_url': bot_url,
             'bot_name': self.get_bot_name(response),
-            'bot_has_red_link': 1 if self.RED_LINK_RE.match(bot) else 0,
-            'operator': self.get_operator(response),
+            'bot_has_red_link': 1 if striper.RED_LINK_RE.match(bot_url) else 0,
+            'operator_url': operator_url,
+            'operator_name': self.get_operator_name(response),
+            'operator_has_red_link': 1 if striper.RED_LINK_RE.match(operator_url) else 0,
             'is_successful': 1 if response.url in self.json_data['successful_requests'] else 0,
             'first_edit': self.get_first_edit(api_response),
             'last_edit': self.get_last_edit(api_response),
@@ -119,26 +115,33 @@ class RequestForPermissionSpider(scrapy.Spider):
 
         db.insert('requests_for_permissions', data)
 
-    def get_bot(self, response):
+    def get_bot_url(self, response):
 
-        bot = self.xpath('bot', response)
-        bot = self.get_url(bot)
+        bot_url = self.xpath('bot', response)
+        bot_url = self.get_url(bot_url)
 
-        return bot
+        return bot_url
 
     def get_bot_name(self, response):
 
-        bot_name = self.xpath('bot_name', response)
-        bot_name = bs.strip(bot_name, replace_request_number=True)
+        bot_name = self.xpath('bot', response)
+        bot_name = striper.strip(bot_name, replace_request_number=True)
 
         return bot_name
 
-    def get_operator(self, response):
+    def get_operator_url(self, response):
 
-        operator = self.xpath('operator', response)
-        operator = self.get_url(operator)
+        operator_url = self.xpath('operator', response)
+        operator_url = self.get_url(operator_url)
 
-        return operator
+        return operator_url
+
+    def get_operator_name(self, response):
+
+        operator_name = self.xpath('operator', response)
+        operator_name = striper.strip(operator_name)
+
+        return operator_name
 
     def get_first_edit(self, api_response):
 
@@ -213,17 +216,24 @@ class RequestForPermissionSpider(scrapy.Spider):
         if user is None:
             return None
 
-        if self.RED_LINK_RE.match(user):
-            return self.base_url + user
+        url = unescape(user)
+        url = unquote(url)
 
-        if 'https://' not in user:
-            if '/wiki/User:' not in user:
-                user = '/wiki/User:' + user
-            user = self.base_url + user
+        if striper.RED_LINK_RE.match(url):
+            return self.base_url + url
+
+        if striper.REQUESTS_FOR_PERMISSIONS_LINK_RE.match(url):
+            url = re.sub(striper.REQUESTS_FOR_PERMISSIONS_LINK_RE, '', url)
+            url = re.sub(striper.REQUEST_NUMBER_RE, '', url)
+
+        if 'https://' not in url:
+            if '/wiki/User:' not in url:
+                url = '/wiki/User:' + url
+            url = self.base_url + url
         else:
-            user = user.replace('https://', 'www.')
+            url = url.replace('https://', 'www.')
 
-        return user
+        return url
 
     def xpath(self, key, response):
 
