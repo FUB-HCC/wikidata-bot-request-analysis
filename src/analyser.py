@@ -24,123 +24,122 @@ class Analyser(object):
 
     MATRIX_QUERIES = [
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots WHERE has_botflag = 1",
+            'sql': "SELECT DISTINCT bots.name FROM bots WHERE has_botflag = 1 AND redirect_of IS NULL",
             'matrix_keys': [['b_f', 'b_f']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots WHERE has_botflag = 0",
+            'sql': "SELECT DISTINCT bots.name FROM bots WHERE has_botflag = 0 AND redirect_of IS NULL",
             'matrix_keys': [['no_b_f', 'no_b_f']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots WHERE is_extension_bot = 1",
+            'sql': "SELECT DISTINCT bots.name FROM bots WHERE is_extension_bot = 1 AND redirect_of IS NULL",
             'matrix_keys': [['ex_b', 'ex_b']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots WHERE groups LIKE '%bot%'",
+            'sql': "SELECT DISTINCT bots.name FROM bots WHERE groups LIKE '%bot%' AND redirect_of IS NULL",
             'matrix_keys': [['group', 'group']],
         },
         {
-            'sql': "SELECT DISTINCT(bot_name) FROM requests_for_permissions",
+            'sql': "SELECT DISTINCT bot_name FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name WHERE redirect_of IS NULL",
             'matrix_keys': [['request', 'request']],
         },
         {
-            'sql': "SELECT DISTINCT(bot_name) FROM requests_for_permissions WHERE is_successful = 1",
+            'sql': "SELECT DISTINCT bot_name FROM requests_for_permissions  INNER JOIN bots ON bots.name = requests_for_permissions.bot_name WHERE redirect_of IS NULL AND is_successful = 1",
             'matrix_keys': [['s_request', 's_request'], ['s_request', 'request']],
         },
         {
-            'sql': "SELECT DISTINCT(bot_name) FROM requests_for_permissions WHERE is_successful = 0",
+            'sql': "SELECT DISTINCT bot_name  FROM requests_for_permissions  INNER JOIN bots ON bots.name = requests_for_permissions.bot_name WHERE redirect_of IS NULL AND is_successful = 0",
             'matrix_keys': [['u_request', 'u_request'], ['u_request', 'request']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots WHERE bots.has_botflag = 1 AND bots.is_extension_bot = 1",
+            'sql': "SELECT DISTINCT bots.name FROM bots WHERE bots.has_botflag = 1 AND bots.is_extension_bot = 1 AND redirect_of IS NULL",
             'matrix_keys': [['ex_b', 'b_f']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots WHERE groups LIKE '%bot%' AND has_botflag = 1",
+            'sql': "SELECT DISTINCT bots.name FROM bots WHERE groups LIKE '%bot%' AND has_botflag = 1 AND redirect_of IS NULL",
             'matrix_keys': [['group', 'b_f']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE bots.has_botflag = 1",
+            'sql': "SELECT DISTINCT bots.name FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE bots.has_botflag = 1 AND redirect_of IS NULL",
             'matrix_keys': [['request', 'b_f']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE bots.has_botflag = 1 AND requests_for_permissions.is_successful = 1",
+            'sql': "SELECT DISTINCT bots.name FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE bots.has_botflag = 1 AND requests_for_permissions.is_successful = 1 AND redirect_of IS NULL",
             'matrix_keys': [['s_request', 'b_f']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE bots.has_botflag = 1 AND requests_for_permissions.is_successful = 0",
+            'sql': "SELECT DISTINCT bots.name FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE bots.has_botflag = 1 AND requests_for_permissions.is_successful = 0 AND redirect_of IS NULL",
             'matrix_keys': [['u_request', 'b_f']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots WHERE bots.has_botflag = 0 AND bots.is_extension_bot = 1",
+            'sql': "SELECT DISTINCT bots.name FROM bots WHERE bots.has_botflag = 0 AND bots.is_extension_bot = 1 AND redirect_of IS NULL",
             'matrix_keys': [['ex_b', 'no_b_f']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots WHERE groups LIKE '%bot%' AND has_botflag = 0",
+            'sql': "SELECT DISTINCT bots.name FROM bots WHERE groups LIKE '%bot%' AND has_botflag = 0 AND redirect_of IS NULL",
             'matrix_keys': [['group', 'no_b_f']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE bots.has_botflag = 0",
+            'sql': "SELECT DISTINCT bots.name FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE bots.has_botflag = 0 AND redirect_of IS NULL",
             'matrix_keys': [['request', 'no_b_f']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE bots.has_botflag = 0 AND requests_for_permissions.is_successful = 1",
+            'sql': "SELECT DISTINCT bots.name FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE bots.has_botflag = 0 AND requests_for_permissions.is_successful = 1 AND redirect_of IS NULL",
             'matrix_keys': [['s_request', 'no_b_f']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE bots.has_botflag = 0 AND requests_for_permissions.is_successful = 0",
+            'sql': "SELECT DISTINCT bots.name FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE bots.has_botflag = 0 AND requests_for_permissions.is_successful = 0 AND redirect_of IS NULL",
             'matrix_keys': [['u_request', 'no_b_f']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots WHERE groups LIKE '%bot%'AND is_extension_bot = 1",
+            'sql': "SELECT DISTINCT(bots.name) FROM bots WHERE groups LIKE '%bot%'AND is_extension_bot = 1  AND redirect_of IS NULL",
             'matrix_keys': [['group', 'ex_b']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE is_extension_bot = 1",
+            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE is_extension_bot = 1 AND redirect_of IS NULL",
             'matrix_keys': [['request', 'ex_b']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE is_extension_bot = 1 AND requests_for_permissions.is_successful = 1",
+            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE is_extension_bot = 1 AND requests_for_permissions.is_successful = 1 AND redirect_of IS NULL",
             'matrix_keys': [['s_request', 'ex_b']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE is_extension_bot = 1 AND requests_for_permissions.is_successful = 0",
+            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE is_extension_bot = 1 AND requests_for_permissions.is_successful = 0 AND redirect_of IS NULL",
             'matrix_keys': [['u_request', 'ex_b']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE groups LIKE '%bot%'",
+            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE groups LIKE '%bot%' AND redirect_of IS NULL",
             'matrix_keys': [['request', 'group']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE groups LIKE '%bot%' AND requests_for_permissions.is_successful = 1",
+            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE groups LIKE '%bot%' AND requests_for_permissions.is_successful = 1 AND redirect_of IS NULL",
             'matrix_keys': [['s_request', 'group']],
         },
         {
-            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE groups LIKE '%bot%' AND requests_for_permissions.is_successful = 0",
+            'sql': "SELECT DISTINCT(bots.name) FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE groups LIKE '%bot%' AND requests_for_permissions.is_successful = 0 AND redirect_of IS NULL",
             'matrix_keys': [['u_request', 'group']],
         },
         {
-            'sql': "SELECT DISTINCT(bot_name) FROM requests_for_permissions WHERE  requests_for_permissions.is_successful = 1 AND bot_name IN (SELECT bot_name FROM requests_for_permissions WHERE requests_for_permissions.is_successful = 0)",
+            'sql': "SELECT DISTINCT(bot_name) FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name WHERE requests_for_permissions.is_successful = 1 AND bot_name IN (SELECT bot_name FROM requests_for_permissions WHERE requests_for_permissions.is_successful = 0) AND redirect_of IS NULL",
             'matrix_keys': [['u_request', 's_request']],
         },
     ]
 
-    UNIQUE_BOTS_QUERY = "SELECT name AS bot FROM bots UNION SELECT bot_name AS bot FROM requests_for_permissions"
+    UNIQUE_BOTS_QUERY = "SELECT name FROM bots WHERE redirect_of IS NULL"
 
-    BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT(bot_name) FROM requests_for_permissions"
-    BOTS_WITHOUT_REQUEST_QUERY = "SELECT name, rights FROM bots WHERE name IN (SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions) AND redirect_of IS NULL"
-    BOTS_WITH_BOT_FLAG_NOT_IN_BOT_GROUP = "SELECT name FROM bots WHERE has_botflag = 1 AND groups NOT LIKE '%bot%'"
-    BOTS_WITHOUT_BOT_FLAG_IN_BOT_GROUP = "SELECT name FROM bots WHERE has_botflag = 0 AND groups LIKE '%bot%'"
-    BOTS_WITH_BOT_FLAG_AND_IN_BOT_GROUP = "SELECT name FROM bots WHERE has_botflag = 1 AND groups LIKE '%bot%'"
+    BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT bot_name FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name WHERE bots.redirect_of IS NULL"
+    BOTS_WITHOUT_REQUEST_QUERY = "SELECT name, rights FROM bots WHERE name IN (SELECT name FROM bots EXCEPT SELECT DISTINCT bot_name AS name FROM requests_for_permissions) AND redirect_of IS NULL"
+    BOTS_WITH_BOT_FLAG_NOT_IN_BOT_GROUP = "SELECT name FROM bots WHERE has_botflag = 1 AND groups NOT LIKE '%bot%' AND redirect_of IS NULL"
+    BOTS_WITHOUT_BOT_FLAG_IN_BOT_GROUP = "SELECT name FROM bots WHERE has_botflag = 0 AND groups LIKE '%bot%' AND redirect_of IS NULL"
+    BOTS_WITH_BOT_FLAG_AND_IN_BOT_GROUP = "SELECT name FROM bots WHERE has_botflag = 1 AND groups LIKE '%bot%' AND redirect_of IS NULL"
 
-    RIGHTS_OF_BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT(bot_name), rights, bot_has_red_link FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name WHERE redirect_of IS NULL UNION SELECT DISTINCT(name), rights, 0 FROM bots WHERE id IN (SELECT redirect_of FROM bots INNER JOIN requests_for_permissions ON requests_for_permissions.bot_name = bots.name WHERE redirect_of IS NOT NULL);"
+    RIGHTS_OF_BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT bot_name, rights, bot_has_red_link FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name WHERE redirect_of IS NULL;"
+    RIGHTS_OF_BOTS_WITHOUT_REQUEST_QUERY = "SELECT name, rights FROM bots WHERE name IN (SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions) AND redirect_of IS NULL"
+    RIGHTS_OF_BOTS_WITH_BOT_FLAG_QUERY = "SELECT name, rights FROM bots WHERE has_botflag = 1 AND groups NOT LIKE '%bot%' AND redirect_of IS NULL"
+    RIGHTS_OF_BOTS_IN_GROUP_BOT = "SELECT name, rights FROM bots WHERE has_botflag = 0 AND groups LIKE '%bot%' AND redirect_of IS NULL"
 
-    RIGHTS_OF_BOTS_WITHOUT_REQUEST_QUERY = "SELECT name, rights FROM bots WHERE name IN (SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions)"
-    RIGHTS_OF_BOTS_WITH_BOT_FLAG_QUERY = "SELECT name, rights FROM bots WHERE has_botflag = 1 AND groups NOT LIKE '%bot%'"
-    RIGHTS_OF_BOTS_IN_GROUP_BOT = "SELECT name, rights FROM bots WHERE has_botflag = 0 AND groups LIKE '%bot%'"
-
-    GROUPS_OF_BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT(bot_name), groups, bot_has_red_link FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name"
-    GROUPS_OF_BOTS_WITHOUT_REQUEST_QUERY = "SELECT name, groups FROM bots WHERE name IN (SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions)"
+    GROUPS_OF_BOTS_WITH_REQUEST_QUERY = "SELECT DISTINCT bot_name, groups, bot_has_red_link FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name WHERE redirect_of IS NULL"
+    GROUPS_OF_BOTS_WITHOUT_REQUEST_QUERY = "SELECT name, groups FROM bots WHERE name IN (SELECT name FROM bots EXCEPT SELECT DISTINCT(bot_name) AS name FROM requests_for_permissions) AND redirect_of IS NULL"
 
     REQUEST_WITHOUT_CLOSED_AT = "SELECT url FROM requests_for_permissions WHERE closed_at = '' OR closed_at IS NULL"
     REQUEST_WITHOUT_EDITOR_COUNT = "SELECT url FROM requests_for_permissions WHERE editor_count IS NULL"

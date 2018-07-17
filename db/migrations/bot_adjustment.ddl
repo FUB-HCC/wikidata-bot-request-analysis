@@ -29,4 +29,14 @@ WHERE name = 'The Anomebot';
 UPDATE requests_for_permissions
 SET bot_url = 'www.wikidata.org/wiki/User:CellosaurusBot',
 bot_has_red_link = 0
-WHERE bot_name = CellosaurusBot
+WHERE bot_name = 'CellosaurusBot';
+
+UPDATE requests_for_permissions
+SET bot_url = 'www.wikidata.org/wiki/User:SaschaBot',
+bot_has_red_link = 0
+WHERE bot_name = 'SaschaBot';
+
+UPDATE requests_for_permissions
+SET bot_url = 'www.wikidata.org/wiki/User:Strainubot',
+bot_has_red_link = 0
+WHERE bot_name = 'Strainubot';
