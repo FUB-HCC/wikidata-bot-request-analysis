@@ -1,10 +1,11 @@
 import csv
 import re
 import pandas as pd
+from datetime import datetime
 
 from db import SqliteDb as db
 from plotly.offline import iplot
-from plotly.graph_objs import Bar
+from plotly.graph_objs import Bar, Layout, Figure
 
 
 class Analyser(object):
@@ -249,7 +250,17 @@ class Analyser(object):
         df = pd.DataFrame(columns=columns)
         df[columns[0]] = distribution.keys()
         df[columns[1]] = distribution.values()
-        iplot([Bar(x=df[columns[0]], y=df[columns[1]])])
+        iplot([Bar(
+            x=df[columns[0]],
+            y=df[columns[1]],
+            marker=dict(
+                color='rgb(235,173,104)',
+                line=dict(
+                    color='rgb(185,125,54)',
+                    width=1.5),
+            ),
+            opacity=0.8
+        )])
 
     @classmethod
     def generate_matrix(cls):
@@ -683,3 +694,267 @@ class Analyser(object):
         print(
             "#################### Request for permission without editor_count: ####################\n",
             "\n".join(requests), "\n")
+
+    @classmethod
+    def plot_general_statistics_about_requests(cls):
+
+        request_stats = {}
+
+        result = db.execute('SELECT COUNT(url) FROM requests_for_permissions')
+
+        for item in result:
+            request_stats['all'] = item[0]
+
+        result = db.execute('SELECT COUNT(url) FROM requests_for_permissions WHERE is_successful = 1')
+
+        for item in result:
+            request_stats['successful'] = item[0]
+
+        result = db.execute('SELECT COUNT(url) FROM requests_for_permissions WHERE is_successful = 0')
+
+        for item in result:
+            request_stats['unsuccessful'] = item[0]
+
+        bot_stats = {}
+
+        result = db.execute('SELECT COUNT (DISTINCT bot_name) FROM requests_for_permissions')
+
+        for item in result:
+            bot_stats['all'] = item[0]
+
+        result = db.execute('SELECT COUNT (DISTINCT bot_name) FROM requests_for_permissions WHERE is_successful = 1')
+
+        for item in result:
+            bot_stats['successful'] = item[0]
+
+        result = db.execute('SELECT COUNT (DISTINCT bot_name) FROM requests_for_permissions WHERE is_successful = 0')
+
+        for item in result:
+            bot_stats['unsuccessful'] = item[0]
+
+        trace0 = Bar(
+            y=['all', 'successful', 'unsuccessful'],
+            x=list(request_stats.values()),
+            name='Requests for Permissions',
+            orientation='h',
+            marker=dict(
+                color='rgb(235,173,104)',
+                line=dict(
+                    color='rgb(185,125,54)',
+                    width=1.5),
+            ),
+            opacity=0.8
+        )
+        trace1 = Bar(
+            y=['all', 'successful', 'unsuccessful'],
+            x=list(bot_stats.values()),
+            name='Bots',
+            orientation='h',
+            marker=dict(
+                color='rgb(204,204,204)',
+                line=dict(
+                    color='rgb(150,150,150)',
+                    width=1.5),
+            ),
+            opacity=0.8
+        )
+
+        data = [trace0, trace1]
+        layout = Layout(
+            xaxis=dict(tickangle=-45),
+            barmode='group',
+        )
+
+        fig = Figure(data=data, layout=layout)
+        iplot(fig, filename='angled-text-bar')
+
+    @classmethod
+    def print_edit_count(cls):
+        result = db.execute('SELECT userid, name, editcount, registration FROM bots WHERE editcount NOT NULL')
+
+        edit_count_dict = {'userid': [], 'bots': [], 'edit_count': [], 'registration': []}
+
+        for item in result:
+            edit_count_dict['userid'].append(item[0])
+            edit_count_dict['bots'].append(item[1])
+            edit_count_dict['edit_count'].append(item[2])
+            edit_count_dict['registration'].append(str(datetime.strptime(item[3], '%Y-%m-%dT%H:%M:%SZ').date()))
+
+        df = pd.DataFrame(edit_count_dict)
+        df = df.sort_values(by=['edit_count', 'bots'])
+
+        print('|{:^25}|{:^25}|{:^25}|{:^25}|'.format('userid', 'bots', 'edit_count', 'registration'))
+        print('|{:_^25}|{:_^25}|{:_^25}|{:_^25}|'.format('', '', '', ''))
+        for index, row in df.iterrows():
+            print('|{:^25}|{:^25}|{:^25}|{:^25}|'.format(row['userid'], row['bots'], row['edit_count'], row['registration']))
+
+
+    @classmethod
+    def print_average_edit_count_per_day(cls):
+        result = db.execute('SELECT userid, name, editcount, registration FROM bots WHERE editcount NOT NULL AND registration NOT NULL')
+
+        average_edit_count_dict = {'userid': [], 'bots': [], 'average_edit_count_per_day': [], 'registration': []}
+
+        for item in result:
+            average_edit_count_dict['userid'].append(item[0])
+            average_edit_count_dict['bots'].append(item[1])
+
+            registration_date = datetime.strptime(item[3], '%Y-%m-%dT%H:%M:%SZ')
+            current_date = datetime.now()
+            days_since_registration = (current_date - registration_date).days
+            average_edit_count_per_day = int(item[2] / days_since_registration)
+
+            average_edit_count_dict['average_edit_count_per_day'].append(average_edit_count_per_day)
+            average_edit_count_dict['registration'].append(str(registration_date.date()))
+
+        df = pd.DataFrame(average_edit_count_dict)
+        df = df.sort_values(by=['average_edit_count_per_day', 'bots'])
+
+        print('|{:^25}|{:^25}|{:^25}|{:^25}|'.format('userid', 'bots', 'avg_edit_count_per_day', 'registration'))
+        print('|{:_^25}|{:_^25}|{:_^25}|{:_^25}|'.format('', '', '', ''))
+        for index, row in df.iterrows():
+            print('|{:^25}|{:^25}|{:^25}|{:^25}|'.format(row['userid'], row['bots'], row['average_edit_count_per_day'], row['registration']))
+
+    @classmethod
+    def print_editor_count(cls, mode=None):
+
+        sql = 'SELECT url, editor_count FROM requests_for_permissions WHERE editor_count NOT NULL'
+
+        if mode == 'successful':
+            sql += ' AND is_successful = 1'
+        elif mode == 'unsuccessful':
+            sql += ' AND is_successful = 0'
+
+        result = db.execute(sql)
+
+        editor_count_dict = {'url': [], 'editor_count': []}
+
+        for item in result:
+            editor_count_dict['url'].append(item[0])
+            editor_count_dict['editor_count'].append(item[1])
+
+        df = pd.DataFrame(editor_count_dict)
+        df = df.sort_values(by=['editor_count', 'url'])
+
+        print('|{:^90}|{:^15}|'.format('url', 'editor_count'))
+        print('|{:_^90}|{:_^15}|'.format('', ''))
+        for index, row in df.iterrows():
+            print('|{:^90}|{:^15}|'.format(row['url'], row['editor_count']))
+
+    @classmethod
+    def plot_bots_group_destribution(cls):
+
+        result = db.execute('SELECT groups, COUNT(*) FROM bots WHERE groups NOT NULL GROUP BY groups')
+
+        data = {'groups': [], 'count': []}
+
+        for item in result:
+            data['groups'].append(item[0])
+            data['count'].append(item[1])
+
+        top_labels = data['groups']
+
+        colors = ['rgba(38, 24, 74, 0.8)', 'rgba(71, 58, 131, 0.8)',
+                  'rgba(122, 120, 168, 0.8)', 'rgba(164, 163, 204, 0.85)',
+                  'rgba(190, 192, 213, 1)', 'rgba(38, 24, 74, 0.8)',
+                  'rgba(71, 58, 131, 0.8)',
+                  'rgba(122, 120, 168, 0.8)', 'rgba(164, 163, 204, 0.85)',
+                  'rgba(190, 192, 213, 1)', 'rgba(190, 192, 213, 1)']
+
+        x_data = [data['count']]
+
+        y_data = ['groups']
+
+        traces = []
+
+        for i in range(0, len(x_data[0])):
+            #print(i)
+            for xd, yd in zip(x_data, y_data):
+                #print(xd)
+                traces.append(Bar(
+                    x=[xd[i]],
+                    y=[yd],
+                    orientation='h',
+                    marker=dict(
+                        color=colors[i],
+                        line=dict(
+                            color='rgb(248, 248, 249)',
+                            width=1)
+                    )
+                ))
+
+        layout = Layout(
+            xaxis=dict(
+                showgrid=False,
+                showline=False,
+                showticklabels=False,
+                zeroline=False,
+                domain=[0.15, 1]
+            ),
+            yaxis=dict(
+                showgrid=False,
+                showline=False,
+                showticklabels=False,
+                zeroline=False,
+            ),
+            barmode='stack',
+            paper_bgcolor='rgb(225, 225, 225)',
+            plot_bgcolor='rgb(225, 225, 225)',
+            margin=dict(
+                l=120,
+                r=10,
+                t=140,
+                b=80
+            ),
+            showlegend=False,
+        )
+
+        annotations = []
+
+        for yd, xd in zip(y_data, x_data):
+            # labeling the y-axis
+            annotations.append(dict(xref='paper', yref='y',
+                                    x=0.14, y=yd,
+                                    xanchor='right',
+                                    text=str(yd),
+                                    font=dict(family='Arial', size=14,
+                                              color='rgb(67, 67, 67)'),
+                                    showarrow=False, align='right'))
+            # labeling the first percentage of each bar (x_axis)
+            annotations.append(dict(xref='x', yref='y',
+                                    x=int(xd[0]) / 474, y=yd,
+                                    text=str(xd[0]) + '%',
+                                    font=dict(family='Arial', size=14,
+                                              color='rgb(248, 248, 255)'),
+                                    showarrow=False))
+            # labeling the first Likert scale (on the top)
+            if yd == y_data[-1]:
+                annotations.append(dict(xref='x', yref='paper',
+                                        x=int(xd[0]) / 474, y=1.1,
+                                        text=top_labels[0],
+                                        font=dict(family='Arial', size=14,
+                                                  color='rgb(67, 67, 67)'),
+                                        showarrow=False))
+            space = xd[0]
+            for i in range(1, len(xd)):
+                # labeling the rest of percentages for each bar (x_axis)
+                annotations.append(dict(xref='x', yref='y',
+                                        x=space + (int(xd[i]) / 474), y=yd,
+                                        text=str(xd[i]) + '%',
+                                        font=dict(family='Arial', size=14,
+                                                  color='rgb(248, 248, 255)'),
+                                        showarrow=False))
+                # labeling the Likert scale
+                if yd == y_data[-1]:
+                    annotations.append(dict(xref='x', yref='paper',
+                                            x=space + (xd[i] / 474), y=1.1,
+                                            text=top_labels[i],
+                                            font=dict(family='Arial', size=14,
+                                                      color='rgb(67, 67, 67)'),
+                                            showarrow=False))
+                space += xd[i]
+
+        layout['annotations'] = annotations
+
+        fig = Figure(data=traces, layout=layout)
+        iplot(fig, filename='bar-colorscale')
