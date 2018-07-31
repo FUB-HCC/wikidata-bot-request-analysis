@@ -7,7 +7,7 @@ from html import unescape
 from urllib.parse import unquote
 
 from db import SqliteDb as db
-from api import MediaWikiAPI as api
+from api import WikidataAPI as api
 from parser import Striper as striper
 
 with open('config.yaml', 'r', encoding='utf-8') as config_file:

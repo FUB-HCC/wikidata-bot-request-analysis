@@ -1,4 +1,4 @@
-language:
-site:
+# path to the logging file
 log:
+# logging level
 log_level:

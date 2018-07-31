@@ -5,7 +5,7 @@ import re
 from html import unescape
 from urllib.parse import unquote
 
-from api import MediaWikiAPI as api
+from api import WikidataAPI as api
 from db import SqliteDb as db
 
 

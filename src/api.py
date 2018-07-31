@@ -6,12 +6,12 @@ with open('config.yaml', 'r', encoding='utf-8') as config_file:
     config = yaml.load(config_file)
 
 
-class MediaWikiAPI(object):
+class WikidataAPI(object):
     """
     Wrapper Class for The MediaWiki action API.
     """
 
-    SITE = pywikibot.site.DataSite(config['language'], config['site'])
+    SITE = pywikibot.site.DataSite('wikidata', 'wikidata')
 
     DEFAULT_USERS_PARAMS = {
         'usprop': 'blockinfo|groups|implicitgroups|rights|editcount|registration'
