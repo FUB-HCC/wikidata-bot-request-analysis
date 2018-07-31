@@ -24,12 +24,12 @@ First setting an environment variable:
 ```
 PYWIKIBOT2_NO_USER_CONFIG=2
 ```
-Then copying the config file and filling it with your own configuration:
+Then copying the config file:
 ```
 cp config.yaml.sample config.yaml
 ```
 
-Afterwards you can run the script with the following command:
+You should then fill the config file with your own configuration. Afterwards you can run the script with the following command:
 ```
 python src/main.py
 ```
@@ -41,5 +41,5 @@ If you only want to run the analysis, you should execute the following:
 cd doc/
 jupyter notebook
 ```
-Then you can find the file with all analyses in doc/doc.ipython.
+Then you can find the file with all analysis in doc/doc.ipython.
 
