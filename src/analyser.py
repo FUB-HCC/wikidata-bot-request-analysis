@@ -738,7 +738,7 @@ class Analyser(object):
         df = pd.DataFrame(data)
         df = df.sort_values(by=['edit_count', 'bot'])
 
-        print_df(df, ['userid', 'bot', 'edit_count', 'registration'], ['20', '35', '25', '20'])
+        print_df(df, ['userid', 'bot', 'edit_count', 'registration'], ['12', '35', '12', '20'])
 
     @classmethod
     def print_average_edit_count_per_day(cls):
@@ -746,7 +746,7 @@ class Analyser(object):
         data = {
             'userid': [],
             'bot': [],
-            'average_edit_count_per_day': [],
+            'edit_count_per_day': [],
             'registration': []
         }
 
@@ -757,15 +757,15 @@ class Analyser(object):
             registration_date = datetime.strptime(item[3], '%Y-%m-%dT%H:%M:%SZ')
             current_date = datetime.now()
             days_since_registration = (current_date - registration_date).days
-            average_edit_count_per_day = int(item[2] / days_since_registration)
+            edit_count_per_day = int(item[2] / days_since_registration)
 
-            data['average_edit_count_per_day'].append(average_edit_count_per_day)
+            data['edit_count_per_day'].append(edit_count_per_day)
             data['registration'].append(str(registration_date.date()))
 
         df = pd.DataFrame(data)
-        df = df.sort_values(by=['average_edit_count_per_day', 'bot'])
+        df = df.sort_values(by=['edit_count_per_day', 'bot'])
 
-        print_df(df, ['userid', 'bot', 'average_edit_count_per_day', 'registration'], ['20', '35', '28', '20'])
+        print_df(df, ['userid', 'bot', 'edit_count_per_day', 'registration'], ['12', '35', '20', '20'])
 
     @classmethod
     def print_editor_count(cls, mode='none'):
