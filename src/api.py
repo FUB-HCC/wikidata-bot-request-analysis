@@ -1,9 +1,5 @@
 import pywikibot
 from pywikibot.data import api
-import yaml
-
-with open('config.yaml', 'r', encoding='utf-8') as config_file:
-    config = yaml.load(config_file)
 
 
 class WikidataAPI(object):

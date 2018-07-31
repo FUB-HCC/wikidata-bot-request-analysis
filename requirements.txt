@@ -1,3 +1,16 @@
-scrapy
+csv
 re
+datetime
+itertools
+pandas
+plotly
+scrapy
+pywikibot
+yaml
+os
+sqlite3
+subprocess
+logging
+html
+urllib
 json
