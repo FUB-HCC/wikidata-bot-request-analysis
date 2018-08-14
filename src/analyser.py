@@ -537,8 +537,8 @@ class Analyser(object):
         without_request_groups = []
 
         for item in db.execute(cls.GROUPS_OF_BOTS_WITHOUT_REQUEST_QUERY):
-            if item[0] is not None:
-                without_request_groups += item[0].split(',')
+            if item[1] is not None:
+                without_request_groups += item[1].split(',')
 
         without_request_groups = set(without_request_groups)
         print(
