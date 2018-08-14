@@ -149,8 +149,8 @@ class Analyser(object):
     REQUEST_WITHOUT_CLOSED_AT_QUERY = "SELECT url FROM requests_for_permissions WHERE closed_at = '' OR closed_at IS NULL"
     REQUEST_WITHOUT_EDITOR_COUNT_QUERY = "SELECT url FROM requests_for_permissions WHERE editor_count IS NULL"
 
-    GROUPED_GROUPS_OF_BOTS_WITHOUT_IMPLICIT_GROUPS_QUERY = "SELECT groups, implicitgroups FROM bots WHERE groups NOT NULL"
-    GROUPED_GROUPS_OF_BOTS_QUERY = "SELECT groups, COUNT(*) AS count FROM bots WHERE groups NOT NULL GROUP BY groups ORDER BY count DESC"
+    GROUPED_GROUPS_OF_BOTS_WITHOUT_IMPLICIT_GROUPS_QUERY = "SELECT groups, implicitgroups FROM bots WHERE groups NOT NULL AND redirect_of IS NULL"
+    GROUPED_GROUPS_OF_BOTS_QUERY = "SELECT groups, COUNT(*) AS count FROM bots WHERE groups NOT NULL AND redirect_of IS NULL GROUP BY groups ORDER BY count DESC"
 
     EDITOR_COUNT_QUERIES = {
         'none': "SELECT url, editor_count FROM requests_for_permissions WHERE editor_count NOT NULL",
@@ -158,7 +158,7 @@ class Analyser(object):
         'unsuccessful': "SELECT url, editor_count FROM requests_for_permissions WHERE editor_count NOT NULL AND is_successful = 0",
     }
 
-    EDITOR_COUNT_WITH_REGISTRATION_DATE_QUERY = "SELECT userid, name, editcount, registration FROM bots WHERE editcount NOT NULL AND registration NOT NULL"
+    EDIT_COUNT_WITH_REGISTRATION_DATE_QUERY = "SELECT userid, name, editcount, registration FROM bots WHERE editcount NOT NULL AND registration NOT NULL AND redirect_of IS NULL"
 
     GENERAL_STATISTICS_ABOUT_REQUESTS_QUERIES = {
         'request': {
@@ -167,12 +167,12 @@ class Analyser(object):
             'unsuccessful': "SELECT COUNT(url) FROM requests_for_permissions WHERE is_successful = 0",
         },
         'bot': {
-            'all': "SELECT COUNT (DISTINCT bot_name) FROM requests_for_permissions",
-            'successful': "SELECT COUNT (DISTINCT bot_name) FROM requests_for_permissions WHERE is_successful = 1",
-            'unsuccessful': "SELECT COUNT (DISTINCT bot_name) FROM requests_for_permissions WHERE is_successful = 0",
+            'all': "SELECT COUNT (DISTINCT bot_name) FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name WHERE redirect_of IS NULL",
+            'successful': "SELECT COUNT (DISTINCT bot_name) FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name WHERE redirect_of IS NULL AND is_successful = 1",
+            'unsuccessful': "SELECT COUNT (DISTINCT bot_name) FROM requests_for_permissions INNER JOIN bots ON bots.name = requests_for_permissions.bot_name WHERE redirect_of IS NULL AND is_successful = 0",
         }
     }
-
+    
     @classmethod
     def count_bots_in_files(cls):
 
@@ -729,7 +729,7 @@ class Analyser(object):
             'registration': []
         }
 
-        for item in db.execute(cls.EDITOR_COUNT_WITH_REGISTRATION_DATE_QUERY):
+        for item in db.execute(cls.EDIT_COUNT_WITH_REGISTRATION_DATE_QUERY):
             data['userid'].append(item[0])
             data['bot'].append(item[1])
             data['edit_count'].append(item[2])
@@ -750,7 +750,7 @@ class Analyser(object):
             'registration': []
         }
 
-        for item in db.execute(cls.EDITOR_COUNT_WITH_REGISTRATION_DATE_QUERY):
+        for item in db.execute(cls.EDIT_COUNT_WITH_REGISTRATION_DATE_QUERY):
             data['userid'].append(item[0])
             data['bot'].append(item[1])
 
