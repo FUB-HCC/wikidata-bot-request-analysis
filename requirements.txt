@@ -15,3 +15,4 @@ html
 urllib
 json
 matplotlib
+sqlalchemy
