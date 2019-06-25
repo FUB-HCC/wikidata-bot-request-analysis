@@ -4,8 +4,10 @@ Please check out: https://github.com/FUB-HCC/wikidata-bot-request-analysis/blob/
 
 # Open Data Dump
 
-Two storage files for options:
+The database are dumped into following different files:
+
 ```wikidata-research.sql ``` with a dialect of MySQL
+
 ```wikidata-research.csv ``` 
 
 # Changes
