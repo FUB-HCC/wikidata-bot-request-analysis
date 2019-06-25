@@ -4,11 +4,11 @@ Please check out: https://github.com/FUB-HCC/wikidata-bot-request-analysis/blob/
 
 ___
 
-# Change Set 1 (Dec 2018) 
+# Changes
+## Change Set 1 (Dec 2018) 
 
 Problem:	Some of the bots have no user_id.
 	
-
 ## Change Set 1: For these three cases we cannot add any user_id to the table.
 
 * Wikimedia Bot (this is represented by column "is_extension_bot")
@@ -22,7 +22,6 @@ Global Economic Map Bot: https://www.wikidata.org/wiki/User:Global_Economic_Map_
 
 ## Change Set 2: I added another column "redirect" that contains the user_id of the redirect.
 SELECT * FROM bots WHERE redirect IS NOT null
-
 
 * Redirect
 DangSunBot: https://www.wikidata.org/wiki/User:DangSunBot (user_id 858760)
@@ -49,7 +48,6 @@ user_id: 141001
 
 ## Change Set 3: I added another column "is_removed" and added an "1".
 SELECT * FROM bots WHERE is_removed==1
-
 
 * Probably removed accounts
 Epochs bot
