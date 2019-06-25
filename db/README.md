@@ -2,7 +2,11 @@
 
 Please check out: https://github.com/FUB-HCC/wikidata-bot-request-analysis/blob/master/doc/doc.ipynb
 
-___
+# Open Data Dump
+
+Two storage files for options:
+```wikidata-research.sql ``` with a dialect of MySQL
+```wikidata-research.csv ``` 
 
 # Changes
 ## Change Set 1 (Dec 2018) 
