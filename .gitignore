@@ -111,3 +111,6 @@ throttle.ctrl
 
 # pycharm
 .idea/*
+
+#DB
+.DS_Store
