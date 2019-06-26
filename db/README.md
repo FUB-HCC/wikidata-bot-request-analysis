@@ -4,7 +4,7 @@ Please check out: https://github.com/FUB-HCC/wikidata-bot-request-analysis/blob/
 
 # Open Data Dump
 
-The database are dumped into following different files. Note that the code-book for classifications is distributed among multiple tables. 
+The database is dumped as follows with two different formats. Note that the code-book for classifications is distributed among multiple tables. 
 
 ```wikidata-research.sql ``` with a dialect of MySQL
 
